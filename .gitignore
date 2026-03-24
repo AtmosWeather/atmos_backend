@@ -5,6 +5,9 @@ venv/
 # Environment variables
 .env
 
+# firebase service account
+atmos-6f7c6-firebase-adminsdk-fbsvc-072956756f.json
+
 # Python cache
 __pycache__/
 *.pyc
