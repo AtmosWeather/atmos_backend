@@ -12,6 +12,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.services.firebase_service import init_firebase
+
+@app.on_event("startup")
+async def startup_event():
+    init_firebase()
+
 from fastapi.responses import JSONResponse
 import traceback
 
