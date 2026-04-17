@@ -6,12 +6,16 @@ from fastapi import APIRouter, HTTPException, UploadFile, File
 from firebase_admin import auth, storage
 from pydantic import BaseModel
 from typing import Optional
+from app.services.firebase_service import get_db
 
 router = APIRouter()
 
 class UserUpdate(BaseModel):
-    displayName: str
+    displayName: Optional[str] = None
     password: Optional[str] = None
+    photoUrl: Optional[str] = None
+    notification: Optional[str] = None
+    theme: Optional[str] = None
 
 @router.get("/users")
 async def get_users():
@@ -33,10 +37,28 @@ async def get_users():
 @router.put("/users/{uid}")
 async def update_user(uid: str, update_data: UserUpdate):
     try:
-        if isinstance(update_data.password, str) and len(update_data.password.strip()) > 0:
-            auth.update_user(uid, display_name=update_data.displayName, password=update_data.password.strip())
-        else:
-            auth.update_user(uid, display_name=update_data.displayName)
+        kwargs = {"display_name": update_data.displayName}
+        pwd = update_data.password
+        if pwd and pwd.strip():
+            kwargs["password"] = pwd.strip()
+        photo = update_data.photoUrl
+        notification = update_data.notification
+        theme = update_data.theme
+        
+        if (photo and isinstance(photo, str)) or (notification and isinstance(notification, str)) or (theme and isinstance(theme, str)):
+            db = get_db()
+            user_record = auth.get_user(uid)
+            email = user_record.email
+            update_payload = {}
+            if photo and isinstance(photo, str):
+                update_payload["photoUrl"] = photo
+            if notification and isinstance(notification, str):
+                update_payload["notification"] = notification
+            if theme and isinstance(theme, str):
+                update_payload["theme"] = theme
+            db.collection("users").document(email).set(update_payload, merge=True)
+            
+        auth.update_user(uid, **kwargs)
         return {"message": "User updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -70,6 +70,23 @@ async def signin(user: UserCredentials):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_message)
             
             # Firebase signInWithPassword returns displayName if it exists
+            email = user.email
+            if email:
+                try:
+                    from app.services.firebase_service import get_db
+                    db = get_db()
+                    doc = db.collection("users").document(email).get()
+                    if doc.exists:
+                        user_data = doc.to_dict()
+                        if user_data and "photoUrl" in user_data:
+                            data["photoUrl"] = user_data["photoUrl"]
+                        if user_data and "notification" in user_data:
+                            data["notification"] = user_data["notification"]
+                        if user_data and "theme" in user_data:
+                            data["theme"] = user_data["theme"]
+                except Exception as e:
+                    print(f"Failed to fetch profile info from firestore: {e}", flush=True)
+
             return {"message": "Signed in successfully", "data": data}
     except httpx.RequestError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Firebase connection error: {str(e)}")
