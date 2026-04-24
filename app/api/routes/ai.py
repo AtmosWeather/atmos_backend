@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from app.services.ai_service import get_ai_response
 from app.services.firebase_service import save_chat_message, get_chat_history, delete_chat_history
+from app.services.activity_service import update_user_activity
 
 router = APIRouter()
 
@@ -38,5 +39,8 @@ async def chat_with_ai(request: ChatRequest):
     ai_save_result = await save_chat_message(request.userId, ai_response_text, is_user=False)
     if not ai_save_result or "error" in ai_save_result:
         print(f"Warning: Failed to save AI response to Firestore - {ai_save_result}")
+
+    # 4. Update activity
+    await update_user_activity(request.userId, 'ai')
 
     return ChatResponse(message=ai_response_text)
