@@ -30,6 +30,10 @@ async def get_users():
         page = auth.list_users()
         users = []
         for user in page.users:
+            if user.disabled:
+                continue
+            if user.email and user.email.lower() == "admin@gmail.com":
+                continue
             users.append({
                 "uid": user.uid,
                 "email": user.email,
@@ -48,6 +52,8 @@ async def get_activities():
         activities_data = await get_all_user_activities()
         users = []
         for user in page.users:
+            if user.disabled:
+                continue
             if user.email and user.email.lower() == "admin@gmail.com":
                 continue
                 
@@ -89,6 +95,9 @@ async def get_feedback():
         messages = []
         for doc in docs:
             data = doc.to_dict()
+            # Skip archived feedback messages
+            if data.get("status") == "archived":
+                continue
             email = data.get("email", "No Email")
             
             # Use provided photoUrl, or fallback to user database
@@ -144,8 +153,8 @@ async def update_feedback_status(message_id: str, status_data: dict):
 async def delete_feedback(message_id: str):
     try:
         db = get_db()
-        db.collection('contact_messages').document(message_id).delete()
-        return {"message": "Feedback deleted successfully", "id": message_id}
+        db.collection('contact_messages').document(message_id).update({"status": "archived"})
+        return {"message": "Feedback archived successfully", "id": message_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -181,8 +190,14 @@ async def update_user(uid: str, update_data: UserUpdate):
 @router.delete("/users/{uid}")
 async def delete_user(uid: str):
     try:
-        auth.delete_user(uid)
-        return {"message": "User deleted successfully", "uid": uid}
+        # Archive: disable user in Firebase Auth instead of deleting
+        user_record = auth.get_user(uid)
+        auth.update_user(uid, disabled=True)
+        # Also flag as archived in Firestore
+        if user_record.email:
+            db = get_db()
+            db.collection("users").document(user_record.email).set({"archived": True}, merge=True)
+        return {"message": "User archived successfully", "uid": uid}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

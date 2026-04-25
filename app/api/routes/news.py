@@ -15,6 +15,9 @@ async def get_weather_updates():
         results = []
         for doc in docs:
             data = doc.to_dict()
+            # Skip archived weather updates
+            if data.get("archived") == True:
+                continue
             data["id"] = doc.id
             results.append(WeatherUpdateResponse(**data))
         return results
@@ -62,8 +65,8 @@ async def delete_weather_update(update_id: str):
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Update not found")
             
-        doc_ref.delete()
-        return {"message": "Update deleted successfully", "id": update_id}
+        doc_ref.update({"archived": True})
+        return {"message": "Update archived successfully", "id": update_id}
     except HTTPException:
         raise
     except Exception as e:
