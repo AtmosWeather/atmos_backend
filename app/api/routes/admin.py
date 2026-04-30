@@ -32,7 +32,7 @@ async def get_users():
         for user in page.users:
             if user.disabled:
                 continue
-            if user.email and user.email.lower() == "admin@gmail.com":
+            if user.email and user.email.lower() in ["kentjohnllanita8978@gmail.com", "admin@gmail.com"]:
                 continue
             users.append({
                 "uid": user.uid,
@@ -54,7 +54,7 @@ async def get_activities():
         for user in page.users:
             if user.disabled:
                 continue
-            if user.email and user.email.lower() == "admin@gmail.com":
+            if user.email and user.email.lower() in ["kentjohnllanita8978@gmail.com", "admin@gmail.com"]:
                 continue
                 
             user_act = activities_data.get(user.uid, {})
